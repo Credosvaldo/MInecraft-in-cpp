@@ -18,6 +18,7 @@
 #include "Classes/CubeMesh.h"
 #include "Classes/Camera.h"
 #include "Classes/Cube.h"
+#include "Classes/Time.h"
 
 #include "Enums/BlockType.h"
 
@@ -28,7 +29,7 @@
 
 #include "OthersHeaders/base.h"
 
-using namespace std;
+
 
 #pragma endregion
 
@@ -44,7 +45,8 @@ FastNoiseLite::NoiseType noiseTypes[] = {
 
 
 #pragma region Variaveis Globais
-bool done;
+ALLEGRO_EVENT event;
+bool done = false;
 
 Shader *shader;
 
@@ -55,6 +57,10 @@ vector<Cube*> cubes;
 ALLEGRO_DISPLAY *display;
 ALLEGRO_EVENT_QUEUE *queue;
 ALLEGRO_TIMER *timer;
+
+//Threads
+thread* threadUpdateKey;
+thread *threadEvents;
 
 #pragma endregion
 
@@ -70,58 +76,22 @@ void must_init(bool test, string msg)
 
 int indexNoiseType = 0;
 
-void DesenharTerreno()
+void InitGlew()
 {
-    cubes.clear();
-    #pragma region ground
-    FastNoiseLite noise;
-
-    noise.SetNoiseType(noiseTypes[indexNoiseType]);
-
-    for(int i = 0; i < 20; i++)
-    {
-        for(int j = 0; j < 32; j++)
-        {
-            for(int k = 0; k < 20; k++)
-            {
-                float noiseValue = noise.GetNoise( (float)i*10, (float)j*10, (float)k*10);
-
-                if(noiseValue < -0.5f)
-                    continue;
-
-                cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS));
-
-            }
-            
-        }
-
-    }
-
-    for(const auto& cb : cubes)
-    {
-        cb->Culling(cubes);
-    }
-
-    #pragma endregion    
-
-}
-
-void initOpenGL()
-{
-    #pragma region Inicializando
-    //GLEW
     if(glewInit() != GLEW_OK)
     {
         must_init(false, "glew");
     }
+}
 
-    //SHADER
+void InitShaders()
+{
     shader = new Shader("Shader/vertexShader.vert", "Shader/fragmentShader.frag");
     shader->use();
-    
+}
 
-    #pragma endregion
-
+void InitTextures()
+{
     #pragma region New Textures
 
     const int maxTextures = 1;
@@ -158,27 +128,80 @@ void initOpenGL()
 
     #pragma endregion
 
-    #pragma region Escrevendo no VRAM
+}
 
-    DesenharTerreno();
+void DesenharTerreno()
+{
+    cubes.clear();
+    FastNoiseLite noise;
 
-    #pragma endregion
+    noise.SetNoiseType(noiseTypes[indexNoiseType]);
 
-    #pragma region Camera
+    for(int i = 0; i < 32; i++)
+    {
+        for(int j = 0; j < 32; j++)
+        {
+            for(int k = 0; k < 32; k++)
+            {
+                float noiseValue = noise.GetNoise( (float)i*10, (float)j*10, (float)k*10);
+
+                if(noiseValue < -0.5f)
+                    continue;
+
+                cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS));
+
+            }
+            
+        }
+
+    }
+
+
+
+}
+
+void InitCamera()
+{
     gameObjects.push_back(new Camera(vec3(0,32,0)));
-
     shader->setMatrix("projection", Camera::main->projection);
 
-    #pragma endregion
+}
 
-    #pragma region Deth
+void InitDepthTest()
+{
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+}
 
+void InitCulling()
+{
     glEnable(GL_CULL_FACE);  // habilita o culling
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-    #pragma endregion
+
+    for(const auto& cb : cubes)
+    {
+        cb->Culling(cubes);
+    }
+
+}
+
+void initOpenGL()
+{
+    InitGlew();
+    InitShaders();
+    InitTextures();
+
+    thread terrainThread(DesenharTerreno);
+
+    InitCamera();
+    InitCulling();
+    InitDepthTest();
+
+    terrainThread.join();
+
+    InitCulling();
+
 }
 
 
@@ -214,7 +237,6 @@ void updateKey()
 
 void draw()
 {
-    al_set_target_backbuffer(al_get_current_display());
     al_clear_to_color(al_map_rgb(135, 206, 235));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -222,7 +244,6 @@ void draw()
     {
         cb->Draw();
     }
-
 
     al_flip_display();
 }
@@ -240,7 +261,7 @@ void logic()
 
 void threadTest()
 {
-    cout<< "Ola thread\n";
+
 }
 
 void RegisterEvents()
@@ -251,18 +272,14 @@ void RegisterEvents()
     al_register_event_source(queue, al_get_mouse_event_source());
 }
 
-int main()
+void InitAllegro()
 {
-    //VARIAVEIS MAIN
-    ALLEGRO_EVENT event;
-    done = false;
-
     //INICIALIZANDO CONTEXTO
     must_init(al_init(), "allegro");
     must_init(al_install_keyboard(), "teclado");
     must_init(al_install_mouse(), "mouse");
 
-
+    //SET DISPLAY FLAGS
     al_set_new_display_flags(ALLEGRO_OPENGL);
     al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
 
@@ -274,64 +291,26 @@ int main()
     timer = al_create_timer(1.0f/60.0f);
     must_init(timer, "timer");
 
-    thread t1(threadTest);
-    t1.join();
-
-    thread* threadUpdateKey = new thread(updateKey);
-
+    //SET MOUSE CURSOR CONFIGS
     al_grab_mouse(display);
     al_hide_mouse_cursor(display);
 
-    //REGISTER EVENTS
-    thread threadEvents(RegisterEvents);
+}
 
-    initOpenGL();
-    
-    Input::Init();
-    CubeMesh::Init();
-
-    for(const auto& go : gameObjects)
-    {
-        go->Start();
-    }
-
-    
-
-    al_start_timer(timer);
-    while(!done)
-    {
-        al_wait_for_event(queue, &event);
-        
-
-        switch (event.type)
-        {
-            case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                done = true;
-                break;
-            
-            case ALLEGRO_EVENT_TIMER:
-                threadUpdateKey->join();
-                delete threadUpdateKey;
-                threadUpdateKey = new thread(updateKey);
-                //updateKey();
-                logic();
-                break;
-
-
-        }
-
-        Input::WaitForEvent(&event);
-    }
-
-    threadEvents.join();
+void DeleteAll()
+{
+    al_uninstall_keyboard();
+    al_uninstall_mouse();
 
     al_destroy_display(display),
     al_destroy_event_queue(queue);
     al_destroy_timer(timer);
 
-    al_uninstall_keyboard();
-    al_uninstall_mouse();
+    threadUpdateKey->join();
+    threadEvents->join();
 
+    delete threadUpdateKey;
+    delete threadEvents;
 
     for(const auto& go : gameObjects)
     {
@@ -346,6 +325,50 @@ int main()
     delete shader;
 
     CubeMesh::Delete();
+}
+
+int main()
+{
+    InitAllegro();
+    initOpenGL();
+    
+    threadUpdateKey = new thread(updateKey);
+    threadEvents = new thread(RegisterEvents);
+
+    Input::Init();
+    CubeMesh::Init();
+
+    for(const auto& go : gameObjects)
+    {
+        go->Start();
+    }
+
+    al_start_timer(timer);
+    while(!done)
+    {
+        al_wait_for_event(queue, &event);
+        
+        switch (event.type)
+        {
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                done = true;
+                break;
+            
+            case ALLEGRO_EVENT_TIMER:
+                threadUpdateKey->join();
+                delete threadUpdateKey;
+                threadUpdateKey = new thread(updateKey);
+                logic();
+                break;
+
+        }
+
+        Input::WaitForEvent(&event);
+        Time::Loop();
+
+    }
+
+    DeleteAll();
 
     return 0;
 }
