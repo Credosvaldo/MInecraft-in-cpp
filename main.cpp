@@ -255,7 +255,7 @@ void logic()
         go->Update();
     }
 
-    draw();
+    
 
 }
 
@@ -359,6 +359,7 @@ int main()
                 delete threadUpdateKey;
                 threadUpdateKey = new thread(updateKey);
                 logic();
+                draw();
                 break;
 
         }
