@@ -15,25 +15,29 @@ class Cube : public GameObject
 private:
     Shader *myMaterial;
     bool tem[6];
+    mat4 model;
 
     BlockType type;
 
 public:
-    Cube(Shader *myMaterial, vec3 position, BlockType type)
+    vector<int>faces;
+
+    Cube(Shader *myMaterial, vec3 position, BlockType type, vector<int>& faces)
     {
         this->myMaterial = myMaterial;
         this->transform->position = position;
         this->type = type;
-        //cout<< "contruiu um na pos: " << position.x << " " << position.y << " " << position.z << "\n";
+        this->faces = faces;
+
+        this->model = mat4(1.0);
+        this->model = translate(model, transform->position);  
+
     }
 
     void Draw()
     {
-        mat4 model(1.0f);
-        model = translate(model, transform->position);  
-
         myMaterial->setMatrix("model", model);
-        CubeMesh::Draw(tem, type);
+        CubeMesh::Draw(faces, type);
     }
 
     void Culling(const vector<Cube*>& cubes)

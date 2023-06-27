@@ -107,21 +107,16 @@ public:
 
     }
 
-    static void Draw(bool tem[6], BlockType type)
+    static void Draw(const vector<int>& tem, BlockType type)
     {
         if(lastBlockType != type)
         {
             Shader::singleton->setInt("texture1", TextureID(type));
         }
 
-        for(int i = 0; i < 6; i++)
+        for(const auto& face : tem)
         {
-            if(tem[i])
-            {
-                continue;
-            }
-
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[i]);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[face]);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
 

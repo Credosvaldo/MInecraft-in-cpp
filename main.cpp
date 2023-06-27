@@ -62,6 +62,14 @@ ALLEGRO_TIMER *timer;
 thread* threadUpdateKey;
 thread *threadEvents;
 
+//Noise
+FastNoiseLite noise;
+float minRender = -0.5f;
+
+const int maxY = 32;
+const int maxX = 32;
+const int maxZ = 32;
+
 #pragma endregion
 
 void must_init(bool test, string msg)
@@ -130,25 +138,72 @@ void InitTextures()
 
 }
 
+/*
+ 0  Topo
+ 1  Frente
+ 2  Embaixo
+ 3  Atras
+ 4  Direita
+ 5  Esquerda
+*/
+
+vector<int> ShouldRender(int x, int y, int z)
+{
+    vector<int> resp;
+    vec3 sides[] = {
+        vec3( 0,  10,  0),
+        vec3( 0,  0,  10),
+        vec3( 0, -10,  0),
+        vec3( 0,  0, -10),
+        vec3( 10,  0,  0),
+        vec3(-10,  0,  0)
+    };
+
+    float xOff = x*10;
+    float yOff = y*10;
+    float zOff = z*10;
+
+    float noiseValue = noise.GetNoise(xOff, yOff, zOff);
+
+    if(noiseValue < minRender)
+        return resp;
+
+
+    for(int i = 0; i < 6; i++)
+    {
+        bool limite = y==maxY-1 && i==0 || y==0 && i==2;
+        if(noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) < minRender || limite)
+        {
+            resp.push_back(i);
+        }
+    }
+
+    return resp;
+}
+
 void DesenharTerreno()
 {
+    for(const auto& cube : cubes)
+    {
+        delete cube;
+    }
+
     cubes.clear();
-    FastNoiseLite noise;
 
     noise.SetNoiseType(noiseTypes[indexNoiseType]);
 
-    for(int i = 0; i < 32; i++)
+    for(int i = 0; i < maxX; i++)
     {
-        for(int j = 0; j < 32; j++)
+        for(int j = 0; j < maxY; j++)
         {
-            for(int k = 0; k < 32; k++)
+            for(int k = 0; k < maxZ; k++)
             {
-                float noiseValue = noise.GetNoise( (float)i*10, (float)j*10, (float)k*10);
+                vector<int>buffer = ShouldRender(i, j, k);
 
-                if(noiseValue < -0.5f)
-                    continue;
-
-                cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS));
+                if(!buffer.empty())
+                {
+                    cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS, buffer));
+                }
 
             }
             
@@ -181,7 +236,7 @@ void InitCulling()
 
     for(const auto& cb : cubes)
     {
-        cb->Culling(cubes);
+        //cb->Culling(cubes);
     }
 
 }
@@ -355,9 +410,10 @@ int main()
                 break;
             
             case ALLEGRO_EVENT_TIMER:
-                threadUpdateKey->join();
-                delete threadUpdateKey;
-                threadUpdateKey = new thread(updateKey);
+                //threadUpdateKey->join();
+                //delete threadUpdateKey;
+                //threadUpdateKey = new thread(updateKey);
+                updateKey();
                 logic();
                 draw();
                 break;
