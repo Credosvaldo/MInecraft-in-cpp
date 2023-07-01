@@ -37,7 +37,7 @@ public:
     void Draw()
     {
         myMaterial->setMatrix("model", model);
-        CubeMesh::Draw(faces, type);
+        //CubeMesh::Draw(faces, type);
     }
 
     void Culling(const vector<Cube*>& cubes)

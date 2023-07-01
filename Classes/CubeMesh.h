@@ -7,6 +7,7 @@
 #include "../Struct/Vertex.h"
 #include "../Enums/BlockType.h"
 
+#include "Cube.h"
 
 
 /*
@@ -29,6 +30,7 @@ private:
     static Vertex vertex[24];
     static unsigned int elements[6][6];
     static BlockType lastBlockType;
+    static bool criado;
 
     static int TextureID(BlockType type)
     {
@@ -53,6 +55,7 @@ private:
 public:
     static unsigned int VAO;
     static unsigned int VBO;
+    static unsigned int VBI;
     static unsigned int EBOs[6];
     static int test;
 
@@ -66,12 +69,12 @@ public:
         //BIND VAO
         glBindVertexArray(VAO);
 
-        //VBO
+        #pragma region VBO
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), vertex, GL_STATIC_DRAW);
+        #pragma endregion
 
-
-        //EBO
+        #pragma region  EBO
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[0]), elements[0], GL_STATIC_DRAW);
         
@@ -89,35 +92,65 @@ public:
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[5]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[5]), elements[5], GL_STATIC_DRAW);
+        #pragma endregion
 
-
-        //ORGANIZANDO ATTRIB POINTERS
+        #pragma region ORGANIZANDO ATTRIB POINTERS
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float)*8, (void*)0);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float)*8, (void*)(3*sizeof(float)));
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float)*8, (void*)(6*sizeof(float)));
-    
 
-        //ATIVANDO ATTRIB POINTERSS
+        //Instancing
+        glBindBuffer(GL_ARRAY_BUFFER, VBI);
+
+        std::size_t vec4Size = sizeof(glm::vec4);
+        glEnableVertexAttribArray(3); 
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glEnableVertexAttribArray(4); 
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
+        glEnableVertexAttribArray(5); 
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glEnableVertexAttribArray(6); 
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+        #pragma endregion
+
+        #pragma region ATIVANDO ATTRIB POINTERSS
         glEnableVertexAttribArray(0); 
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
-
+        #pragma endregion
         
         glBindVertexArray(VAO);
 
     }
 
-    static void Draw(const vector<int>& tem, BlockType type)
+    static void SetVbiData(const vector<mat4>& model)
+    {
+        glDeleteBuffers(1, &VBI);
+        glGenBuffers(1, &VBI);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBI);
+        glBufferData(GL_ARRAY_BUFFER, model.size() * sizeof(mat4), model.data(), GL_STATIC_DRAW);
+    }
+
+    static void Draw(int amount, BlockType type)
     {
         if(lastBlockType != type)
         {
             Shader::singleton->setInt("texture1", TextureID(type));
         }
 
-        for(const auto& face : tem)
+        glBindBuffer(GL_ARRAY_BUFFER, VBI);
+        
+        for(int face = 0; face < 6; face++)
         {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[face]);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, amount);
         }
 
         lastBlockType = type;
@@ -215,7 +248,9 @@ unsigned int CubeMesh::elements[6][6] = {
 
 unsigned int CubeMesh::VAO;
 unsigned int CubeMesh::VBO;
+unsigned int CubeMesh::VBI;
 unsigned int CubeMesh::EBOs[6];
+bool CubeMesh::criado = false;
 BlockType CubeMesh::lastBlockType = -1;
 
 #endif 

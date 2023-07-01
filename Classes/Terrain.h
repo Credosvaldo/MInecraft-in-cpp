@@ -12,7 +12,12 @@ class Terrain
 private:
 
 public:
-    vector<Cube*> cuabes;
+    vector<Cube*> cubes;
+
+    void Draw()
+    {
+        
+    }
 
 };
 

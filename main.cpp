@@ -66,9 +66,9 @@ thread *threadEvents;
 FastNoiseLite noise;
 float minRender = -0.5f;
 
-const int maxY = 32;
-const int maxX = 32;
-const int maxZ = 32;
+const int maxY = 128;
+const int maxX = 128;
+const int maxZ = 128;
 
 #pragma endregion
 
@@ -189,8 +189,9 @@ void DesenharTerreno()
     }
 
     cubes.clear();
-
+    
     noise.SetNoiseType(noiseTypes[indexNoiseType]);
+    vector<mat4> model;
 
     for(int i = 0; i < maxX; i++)
     {
@@ -203,6 +204,9 @@ void DesenharTerreno()
                 if(!buffer.empty())
                 {
                     cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS, buffer));
+                    mat4 aux = mat4(1.0f);
+                    aux = translate(aux, cubes.back()->transform->position);
+                    model.push_back(aux);
                 }
 
             }
@@ -211,7 +215,7 @@ void DesenharTerreno()
 
     }
 
-
+    CubeMesh::SetVbiData(model);
 
 }
 
@@ -247,13 +251,14 @@ void initOpenGL()
     InitShaders();
     InitTextures();
 
-    thread terrainThread(DesenharTerreno);
+    //thread terrainThread(DesenharTerreno);
+    DesenharTerreno();
 
     InitCamera();
     InitCulling();
     InitDepthTest();
 
-    terrainThread.join();
+    //terrainThread.join();
 
     InitCulling();
 
@@ -265,7 +270,6 @@ void updateKey()
 {
     if(Input::GetKeyDown(ALLEGRO_KEY_RIGHT))
     {
-        
         indexNoiseType++;
         if(indexNoiseType == 6)
             indexNoiseType = 0;
@@ -295,10 +299,14 @@ void draw()
     al_clear_to_color(al_map_rgb(135, 206, 235));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    CubeMesh::Draw(cubes.size(), BLOCK_GRASS);
+
+/*
     for(const auto& cb : cubes)
     {
         cb->Draw();
     }
+*/
 
     al_flip_display();
 }
