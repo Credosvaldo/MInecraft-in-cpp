@@ -25,11 +25,14 @@ private:
     FastNoiseLite noise;
     float minRender = -0.5f;
 
-    const int maxY = 80;
-    const int maxX = 64;
-    const int maxZ = 64;
+    const int maxY = 4;
+    const int maxX = 40;
+    const int maxZ = 40;
 
     bool antigo = true;
+    bool teste = true;
+
+    int amount[6];
 
 
     FastNoiseLite::NoiseType noiseTypes[6] = {
@@ -41,16 +44,16 @@ private:
         FastNoiseLite::NoiseType_ValueCubic//5
     };
 
-    bool ShouldRender(int x, int y, int z)
+    vector<int> ShouldRender(int x, int y, int z)
     {
         vector<int> resp;
         vec3 sides[] = {
-            vec3( 0,  10,  0),
-            vec3( 0,  0,  10),
-            vec3( 0, -10,  0),
-            vec3( 0,  0, -10),
-            vec3( 10,  0,  0),
-            vec3(-10,  0,  0)
+            vec3( 0,  10,  0), //0  Topo
+            vec3( 0,  0,  10), //1  Frente
+            vec3( 0, -10,  0), //2  Embaixo
+            vec3( 0,  0, -10), //3  Atras
+            vec3( 10,  0,  0), //4  Direita
+            vec3(-10,  0,  0)  //5  Esquerda
         };
 
         float xOff = x*10;
@@ -60,57 +63,47 @@ private:
         float noiseValue = noise.GetNoise(xOff, yOff, zOff);
 
         if(noiseValue < minRender)
-            return false;
+            return resp;
+
+        if(teste)
+        {
+            float noiseTest = noise.GetNoise(xOff, yOff + 10, zOff);
+
+            if(noiseTest < minRender)
+                resp.push_back(0);
+
+            resp.push_back(1);
+            resp.push_back(2);
+            resp.push_back(3);
+            resp.push_back(4);
+            resp.push_back(5);
+
+            return resp;
+        }
 
 
         for(int i = 0; i < 6; i++)
         {
+            // cout<< "I: " << i << endl;
+            // cout<< "x: " << x << " y: " << y << " z: " << z << endl;
+            // cout<< "xOff: " << xOff + sides[i].x << " yOff: " << yOff + sides[i].y << " zOff: " << zOff + sides[i].z << endl;
+            // cout<< "noise: " << noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) << endl;
+            // cout<< "MinRender: " << minRender << endl;
+            
+            // cout<< endl;
+
             bool limite = y==maxY-1 && i==0 || y==0 && i==2;
-            if(noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) < minRender || limite)
+            if(noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) < minRender)
             {
                 resp.push_back(i);
             }
         }
 
-        return true;
+        return resp;
     }
 
     void DesenharTerreno()
     {
-        for(const auto& cube : cubes)
-        {
-            delete cube;
-        }
-
-        cubes.clear();
-
-        noise.SetNoiseType(noiseTypes[indexNoiseType]);
-        vector<mat4> model;
-
-        float noiseValue; 
-
-        for(int i = -maxX; i < maxX; i++)
-        {
-            for(int j = -maxY; j < maxY; j++)
-            {
-                noiseValue = 2* noise.GetNoise((float)i*10, (float)j*10);
-
-                cubes.push_back(new Cube(vec3(i, (int)noiseValue, j), BLOCK_GRASS));
-                
-                mat4 aux = mat4(1.0f);
-                aux = translate(aux, cubes.back()->transform->position);
-                model.push_back(aux);
-                
-                
-            }
-
-        }
-
-        CubeMesh::SetVbiData(model);
-
-        if(antigo)
-            return;
-
         #pragma region Novo
         for(const auto& cube : cubes)
         {
@@ -120,26 +113,38 @@ private:
         cubes.clear();
 
         noise.SetNoiseType(noiseTypes[indexNoiseType]);
-        //vector<mat4> model;
+        vector<mat4> model[6];
 
-        for(int i = 0; i < maxX; i++)
+        for(int i = -maxX; i < maxX; i++)
         {
-            for(int j = 0; j < maxY; j++)
+            for(int j = -maxY; j < maxY; j++)
             {
-                for(int k = 0; k < maxZ; k++)
+                for(int k = -maxZ; k < maxZ; k++)
                 {
-                    if(ShouldRender(i, j, k))
+                    vector<int> resp = ShouldRender(i, j, k);
+
+                    if(!resp.empty())
                     {
                         cubes.push_back(new Cube(vec3(i, j, k), BLOCK_GRASS));
                         mat4 aux = mat4(1.0f);
                         aux = translate(aux, cubes.back()->transform->position);
-                        model.push_back(aux);
+
+                        for(const auto r : resp)
+                        {
+                            model[r].push_back(aux);
+                        }
+
                     }
 
                 }
                 
             }
 
+        }
+
+        for(int i = 0; i < 6; i++)
+        {
+            amount[i] = model[i].size();
         }
 
         CubeMesh::SetVbiData(model);
@@ -194,7 +199,7 @@ public:
 
     void Draw()
     {
-        CubeMesh::Draw(cubes.size(), BLOCK_GRASS);
+        CubeMesh::Draw(amount, BLOCK_GRASS);
     }
 
 

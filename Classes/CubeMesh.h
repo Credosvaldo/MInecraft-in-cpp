@@ -34,7 +34,7 @@ private:
 
     static unsigned int VAO;
     static unsigned int VBO;
-    static unsigned int VBI;
+    static unsigned int VBIs[6];
     static unsigned int EBOs[6];
     static int test;
 
@@ -77,23 +77,11 @@ public:
         #pragma endregion
 
         #pragma region  EBO
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[0]), elements[0], GL_STATIC_DRAW);
-        
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[1]), elements[1], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[2]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[2]), elements[2], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[3]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[3]), elements[3], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[4]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[4]), elements[4], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[5]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[5]), elements[5], GL_STATIC_DRAW);
+        for(int i = 0; i < 6; i++)
+        {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[i]);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements[i]), elements[i], GL_STATIC_DRAW);
+        }
         #pragma endregion
 
         #pragma region ORGANIZANDO ATTRIB POINTERS
@@ -101,23 +89,6 @@ public:
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float)*8, (void*)(3*sizeof(float)));
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float)*8, (void*)(6*sizeof(float)));
 
-        //Instancing
-        glBindBuffer(GL_ARRAY_BUFFER, VBI);
-
-        std::size_t vec4Size = sizeof(glm::vec4);
-        glEnableVertexAttribArray(3); 
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
-        glEnableVertexAttribArray(4); 
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
-        glEnableVertexAttribArray(5); 
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-        glEnableVertexAttribArray(6); 
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-        glVertexAttribDivisor(3, 1);
-        glVertexAttribDivisor(4, 1);
-        glVertexAttribDivisor(5, 1);
-        glVertexAttribDivisor(6, 1);
         #pragma endregion
 
         #pragma region ATIVANDO ATTRIB POINTERSS
@@ -130,15 +101,17 @@ public:
 
     }
 
-    static void SetVbiData(const vector<mat4>& model)
+    static void SetVbiData(const vector<mat4> model[6])
     {
-        if (VBI != 0) {
-            glDeleteBuffers(1, &VBI);
-        }
+        glDeleteBuffers(6, VBIs);
         
-        glGenBuffers(1, &VBI);
-        glBindBuffer(GL_ARRAY_BUFFER, VBI);
-        glBufferData(GL_ARRAY_BUFFER, model.size() * sizeof(mat4), model.data(), GL_DYNAMIC_DRAW);
+        glGenBuffers(6, VBIs);
+
+        for(int i = 0; i < 6; i++)
+        {
+            glBindBuffer(GL_ARRAY_BUFFER, VBIs[i]);
+            glBufferData(GL_ARRAY_BUFFER, model[i].size() * sizeof(mat4), model[i].data(), GL_DYNAMIC_DRAW);
+        }
 
         std::size_t vec4Size = sizeof(glm::vec4);
         glEnableVertexAttribArray(3); 
@@ -157,29 +130,30 @@ public:
     }
 
 
-    static void Draw(int amount, BlockType type)
+    static void Draw(int amount[6], BlockType type)
     {
         if(lastBlockType != type)
         {
             Shader::singleton->setInt("texture1", TextureID(type));
         }
-
-        //glBindBuffer(GL_ARRAY_BUFFER, VBI);
         
         for(int face = 0; face < 6; face++)
         {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[face]);
-            glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, amount);
+            glBindBuffer(GL_VERTEX_ARRAY, VBIs[face]);
+
+            glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, amount[face]);
         }
 
         lastBlockType = type;
+
     }
 
     static void Delete()
     {
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &VBI);
+        glDeleteBuffers(6, VBIs);
         glDeleteBuffers(6, EBOs);
     }
 
@@ -268,7 +242,7 @@ unsigned int CubeMesh::elements[6][6] = {
 
 unsigned int CubeMesh::VAO;
 unsigned int CubeMesh::VBO;
-unsigned int CubeMesh::VBI;
+unsigned int CubeMesh::VBIs[6];
 unsigned int CubeMesh::EBOs[6];
 bool CubeMesh::criado = false;
 BlockType CubeMesh::lastBlockType = -1;

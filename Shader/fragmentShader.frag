@@ -1,4 +1,4 @@
-#version 450
+#version 330 core
 
 in vec3 Cor;
 in vec2 TextCords;

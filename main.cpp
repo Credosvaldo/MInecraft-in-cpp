@@ -59,6 +59,7 @@ void must_init(bool test, string msg)
         return;
 
     cout<< "Nao foi possivel inicializar " << msg << endl;
+    system("pause");
     exit(1);
 
 }
@@ -150,7 +151,6 @@ void initOpenGL()
     InitCamera();
     InitCulling();
     InitDepthTest();
-    InitCulling();
 
 }
 
