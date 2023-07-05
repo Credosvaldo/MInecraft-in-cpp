@@ -164,7 +164,7 @@ public:
             Shader::singleton->setInt("texture1", TextureID(type));
         }
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBI);
+        //glBindBuffer(GL_ARRAY_BUFFER, VBI);
         
         for(int face = 0; face < 6; face++)
         {

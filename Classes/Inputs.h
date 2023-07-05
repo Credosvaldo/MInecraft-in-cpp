@@ -29,7 +29,7 @@ private:
         for(int i = 0; i < 3; i++)
             mouse.button[i] &= SEEN;
 
-        mouse.deltaPosition = vec2(0.0f);
+         mouse.deltaPosition = vec2(0.0f);
     }
 
 
