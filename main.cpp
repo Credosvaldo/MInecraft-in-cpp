@@ -19,6 +19,7 @@
 #include "Classes/Camera.h"
 #include "Classes/Cube.h"
 #include "Classes/Time.h"
+#include "Classes/Terrain.h"
 
 #include "Enums/BlockType.h"
 
@@ -29,29 +30,17 @@
 
 #include "OthersHeaders/base.h"
 
-
-
 #pragma endregion
-
-
-FastNoiseLite::NoiseType noiseTypes[] = {
-    FastNoiseLite::NoiseType_Cellular,//0
-    FastNoiseLite::NoiseType_OpenSimplex2,//1
-    FastNoiseLite::NoiseType_OpenSimplex2S,//2
-    FastNoiseLite::NoiseType_Perlin,//3
-    FastNoiseLite::NoiseType_Value,//4
-    FastNoiseLite::NoiseType_ValueCubic//5
-};
 
 
 #pragma region Variaveis Globais
 ALLEGRO_EVENT event;
 bool done = false;
 
-Shader *shader;
-
+//Objects
+Shader* shader;
+Terrain* terreno;
 vector<GameObject*> gameObjects;
-vector<Cube*> cubes;
 
 //Main
 ALLEGRO_DISPLAY *display;
@@ -61,14 +50,6 @@ ALLEGRO_TIMER *timer;
 //Threads
 thread* threadUpdateKey;
 thread *threadEvents;
-
-//Noise
-FastNoiseLite noise;
-float minRender = -0.5f;
-
-const int maxY = 128;
-const int maxX = 128;
-const int maxZ = 128;
 
 #pragma endregion
 
@@ -138,90 +119,9 @@ void InitTextures()
 
 }
 
-/*
- 0  Topo
- 1  Frente
- 2  Embaixo
- 3  Atras
- 4  Direita
- 5  Esquerda
-*/
-
-vector<int> ShouldRender(int x, int y, int z)
-{
-    vector<int> resp;
-    vec3 sides[] = {
-        vec3( 0,  10,  0),
-        vec3( 0,  0,  10),
-        vec3( 0, -10,  0),
-        vec3( 0,  0, -10),
-        vec3( 10,  0,  0),
-        vec3(-10,  0,  0)
-    };
-
-    float xOff = x*10;
-    float yOff = y*10;
-    float zOff = z*10;
-
-    float noiseValue = noise.GetNoise(xOff, yOff, zOff);
-
-    if(noiseValue < minRender)
-        return resp;
-
-
-    for(int i = 0; i < 6; i++)
-    {
-        bool limite = y==maxY-1 && i==0 || y==0 && i==2;
-        if(noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) < minRender || limite)
-        {
-            resp.push_back(i);
-        }
-    }
-
-    return resp;
-}
-
-void DesenharTerreno()
-{
-    for(const auto& cube : cubes)
-    {
-        delete cube;
-    }
-
-    cubes.clear();
-    
-    noise.SetNoiseType(noiseTypes[indexNoiseType]);
-    vector<mat4> model;
-
-    for(int i = 0; i < maxX; i++)
-    {
-        for(int j = 0; j < maxY; j++)
-        {
-            for(int k = 0; k < maxZ; k++)
-            {
-                vector<int>buffer = ShouldRender(i, j, k);
-
-                if(!buffer.empty())
-                {
-                    cubes.push_back(new Cube(shader, vec3(i, j, k), BLOCK_GRASS, buffer));
-                    mat4 aux = mat4(1.0f);
-                    aux = translate(aux, cubes.back()->transform->position);
-                    model.push_back(aux);
-                }
-
-            }
-            
-        }
-
-    }
-
-    CubeMesh::SetVbiData(model);
-
-}
-
 void InitCamera()
 {
-    gameObjects.push_back(new Camera(vec3(0,32,0)));
+    gameObjects.push_back(new Camera(vec3(0,10,0)));
     shader->setMatrix("projection", Camera::main->projection);
 
 }
@@ -238,11 +138,6 @@ void InitCulling()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    for(const auto& cb : cubes)
-    {
-        //cb->Culling(cubes);
-    }
-
 }
 
 void initOpenGL()
@@ -251,8 +146,8 @@ void initOpenGL()
     InitShaders();
     InitTextures();
 
-    //thread terrainThread(DesenharTerreno);
-    DesenharTerreno();
+    terreno = new Terrain();
+    terreno->DesenharTerreno();
 
     InitCamera();
     InitCulling();
@@ -270,10 +165,10 @@ void updateKey()
 {
     if(Input::GetKeyDown(ALLEGRO_KEY_RIGHT))
     {
-        indexNoiseType++;
-        if(indexNoiseType == 6)
-            indexNoiseType = 0;
-        DesenharTerreno();
+        terreno->indexNoiseType++;
+        if(terreno->indexNoiseType == 6)
+            terreno->indexNoiseType = 0;
+        terreno->DesenharTerreno();
         
         //cout<< "Index: " << indexNoiseType << "\n";
     }
@@ -281,10 +176,10 @@ void updateKey()
     if(Input::GetKeyDown(ALLEGRO_KEY_LEFT))
     {
         
-        indexNoiseType--;
-        if(indexNoiseType == -1)
-            indexNoiseType = 5;
-        DesenharTerreno();
+        terreno->indexNoiseType--;
+        if(terreno->indexNoiseType == -1)
+            terreno->indexNoiseType = 5;
+        terreno->DesenharTerreno();
         
         //cout<< "Index: " << indexNoiseType << "\n";
     }
@@ -299,14 +194,7 @@ void draw()
     al_clear_to_color(al_map_rgb(135, 206, 235));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    CubeMesh::Draw(cubes.size(), BLOCK_GRASS);
-
-/*
-    for(const auto& cb : cubes)
-    {
-        cb->Draw();
-    }
-*/
+    terreno->Draw();
 
     al_flip_display();
 }
@@ -380,12 +268,8 @@ void DeleteAll()
         delete go;
     }
 
-    for(const auto& cb : cubes)
-    {
-        delete cb;
-    }
-
     delete shader;
+    delete terreno;
 
     CubeMesh::Delete();
 }
@@ -395,7 +279,7 @@ int main()
     InitAllegro();
     initOpenGL();
     
-    threadUpdateKey = new thread(updateKey);
+    //threadUpdateKey = new thread(updateKey);
     threadEvents = new thread(RegisterEvents);
 
     Input::Init();

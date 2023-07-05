@@ -32,6 +32,12 @@ private:
     static BlockType lastBlockType;
     static bool criado;
 
+    static unsigned int VAO;
+    static unsigned int VBO;
+    static unsigned int VBI;
+    static unsigned int EBOs[6];
+    static int test;
+
     static int TextureID(BlockType type)
     {
         
@@ -53,11 +59,7 @@ private:
     }
 
 public:
-    static unsigned int VAO;
-    static unsigned int VBO;
-    static unsigned int VBI;
-    static unsigned int EBOs[6];
-    static int test;
+
 
     static void Init()
     {   
@@ -130,12 +132,30 @@ public:
 
     static void SetVbiData(const vector<mat4>& model)
     {
-        glDeleteBuffers(1, &VBI);
+        if (VBI != 0) {
+            glDeleteBuffers(1, &VBI);
+        }
+        
         glGenBuffers(1, &VBI);
-
         glBindBuffer(GL_ARRAY_BUFFER, VBI);
-        glBufferData(GL_ARRAY_BUFFER, model.size() * sizeof(mat4), model.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, model.size() * sizeof(mat4), model.data(), GL_DYNAMIC_DRAW);
+
+        std::size_t vec4Size = sizeof(glm::vec4);
+        glEnableVertexAttribArray(3); 
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glEnableVertexAttribArray(4); 
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
+        glEnableVertexAttribArray(5); 
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glEnableVertexAttribArray(6); 
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
     }
+
 
     static void Draw(int amount, BlockType type)
     {
@@ -149,7 +169,6 @@ public:
         for(int face = 0; face < 6; face++)
         {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[face]);
-            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, amount);
         }
 
