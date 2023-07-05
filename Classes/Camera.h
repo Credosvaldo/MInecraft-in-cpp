@@ -143,7 +143,7 @@ public:
 
     void Start()
     {
-
+        Shader::singleton->setMatrix("projection", Camera::main->projection);
     }
 
     void Update()

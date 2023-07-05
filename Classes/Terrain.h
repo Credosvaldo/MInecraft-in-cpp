@@ -19,7 +19,7 @@ using namespace std;
 */
 
 
-class Terrain
+class Terrain : public GameObject
 {
 private:
     FastNoiseLite noise;
@@ -43,8 +43,37 @@ private:
 
 
 public:
+    static Terrain* currentTerrain;
     vector<Cube*> cubes;
     int indexNoiseType = 0;
+
+    void Start()
+    {
+        currentTerrain = this;
+        DesenharTerreno();
+    }
+
+    void Update()
+    {
+        if(Input::GetKeyDown(ALLEGRO_KEY_RIGHT))
+        {
+            indexNoiseType++;
+            if(indexNoiseType == 6)
+                indexNoiseType = 0;
+            DesenharTerreno();
+            
+        }
+
+        if(Input::GetKeyDown(ALLEGRO_KEY_LEFT))
+        {
+            indexNoiseType--;
+            if(indexNoiseType == -1)
+                indexNoiseType = 5;
+            DesenharTerreno();
+            
+        }
+
+    }
 
     void Draw()
     {
@@ -168,5 +197,7 @@ public:
     }
 
 };
+
+Terrain* Terrain::currentTerrain;
 
 #endif

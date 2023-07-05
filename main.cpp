@@ -1,17 +1,18 @@
 #pragma region Bibliotecas e Afins
+//MinGW
 #include <iostream>
 #include <vector>
 #include <math.h>
 #include <thread>
 
+//Allegro e OpenGL
 #include <GL/glew.h>
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_opengl.h>
 #include <allegro5/threads.h>
-
 #include <GL/gl.h>
 
-
+//Classes
 #include "Classes/shader.h"
 #include "Classes/Inputs.h"
 #include "Classes/FastNoiseLite.h"
@@ -21,19 +22,21 @@
 #include "Classes/Time.h"
 #include "Classes/Terrain.h"
 
+//Enums
 #include "Enums/BlockType.h"
 
+//Structs
 #include "Struct/Vertex.h"
 
+//Others Headers
 #define STB_IMAGE_IMPLEMENTATION
 #include "OthersHeaders/stb_image.h"
-
 #include "OthersHeaders/base.h"
 
+//Teste
 #include "munit/munit.h"
 
 #pragma endregion
-
 
 #pragma region Variaveis Globais
 ALLEGRO_EVENT event;
@@ -41,17 +44,12 @@ bool done = false;
 
 //Objects
 Shader* shader;
-Terrain* terreno;
 vector<GameObject*> gameObjects;
 
 //Main
 ALLEGRO_DISPLAY *display;
 ALLEGRO_EVENT_QUEUE *queue;
 ALLEGRO_TIMER *timer;
-
-//Threads
-thread* threadUpdateKey;
-thread *threadEvents;
 
 #pragma endregion
 
@@ -64,8 +62,6 @@ void must_init(bool test, string msg)
     exit(1);
 
 }
-
-int indexNoiseType = 0;
 
 void InitGlew()
 {
@@ -121,11 +117,14 @@ void InitTextures()
 
 }
 
+void InitTerrain()
+{
+    gameObjects.push_back(new Terrain());
+}
+
 void InitCamera()
 {
     gameObjects.push_back(new Camera(vec3(0,10,0)));
-    shader->setMatrix("projection", Camera::main->projection);
-
 }
 
 void InitDepthTest()
@@ -147,56 +146,20 @@ void initOpenGL()
     InitGlew();
     InitShaders();
     InitTextures();
-
-    terreno = new Terrain();
-    terreno->DesenharTerreno();
-
+    InitTerrain();
     InitCamera();
     InitCulling();
     InitDepthTest();
-
-    //terrainThread.join();
-
     InitCulling();
 
 }
-
-
-
-void updateKey()
-{
-    if(Input::GetKeyDown(ALLEGRO_KEY_RIGHT))
-    {
-        terreno->indexNoiseType++;
-        if(terreno->indexNoiseType == 6)
-            terreno->indexNoiseType = 0;
-        terreno->DesenharTerreno();
-        
-        //cout<< "Index: " << indexNoiseType << "\n";
-    }
-
-    if(Input::GetKeyDown(ALLEGRO_KEY_LEFT))
-    {
-        
-        terreno->indexNoiseType--;
-        if(terreno->indexNoiseType == -1)
-            terreno->indexNoiseType = 5;
-        terreno->DesenharTerreno();
-        
-        //cout<< "Index: " << indexNoiseType << "\n";
-    }
-
-
-}
-
-
 
 void draw()
 {
     al_clear_to_color(al_map_rgb(135, 206, 235));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    terreno->Draw();
+    Terrain::currentTerrain->Draw();
 
     al_flip_display();
 }
@@ -259,19 +222,12 @@ void DeleteAll()
     al_destroy_event_queue(queue);
     al_destroy_timer(timer);
 
-    threadUpdateKey->join();
-    threadEvents->join();
-
-    delete threadUpdateKey;
-    delete threadEvents;
-
     for(const auto& go : gameObjects)
     {
         delete go;
     }
 
     delete shader;
-    delete terreno;
 
     CubeMesh::Delete();
 }
@@ -280,9 +236,7 @@ int main()
 {
     InitAllegro();
     initOpenGL();
-    
-    //threadUpdateKey = new thread(updateKey);
-    threadEvents = new thread(RegisterEvents);
+    RegisterEvents();
 
     Input::Init();
     CubeMesh::Init();
@@ -304,10 +258,6 @@ int main()
                 break;
             
             case ALLEGRO_EVENT_TIMER:
-                //threadUpdateKey->join();
-                //delete threadUpdateKey;
-                //threadUpdateKey = new thread(updateKey);
-                updateKey();
                 logic();
                 draw();
                 break;
