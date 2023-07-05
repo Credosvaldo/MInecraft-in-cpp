@@ -44,7 +44,7 @@ private:
         FastNoiseLite::NoiseType_ValueCubic//5
     };
 
-    vector<int> ShouldRender(int x, int y, int z)
+    vector<int> ShouldRender(float x, float y, float z)
     {
         vector<int> resp;
         vec3 sides[] = {
@@ -67,16 +67,54 @@ private:
 
         if(teste)
         {
-            float noiseTest = noise.GetNoise(xOff, yOff + 10, zOff);
+            float noiseTestTOP = noise.GetNoise(x*10, (y+1)*10, z*10); //0  Topo
+            float noiseTestFOR = noise.GetNoise(x*10, (y+1)*10, z*10); //1  Frente
+            float noiseTestDOW = noise.GetNoise(x*10, (y+1)*10, z*10); //2  Embaixo
+            float noiseTestBAC = noise.GetNoise(x*10, (y+1)*10, z*10); //3  Atras
+            float noiseTestRIG = noise.GetNoise(x*10, (y+1)*10, z*10); //4  Direita
+            float noiseTestLEF = noise.GetNoise(x*10, (y+1)*10, z*10); //5  Esquerda
+
+            if(noiseTestTOP < minRender)
+            {
+                resp.push_back(0);
+                // cout<< "executo\n";
+            }
+
+            if(noiseTestFOR < minRender)
+            {
+                resp.push_back(1);
+                // cout<< "executo\n";
+            } 
+
+            if(noiseTestDOW < minRender)
+            {
+                resp.push_back(2);
+                // cout<< "executo\n";
+            }
+
+            if(noiseTestBAC < minRender)
+            {
+                resp.push_back(3);
+                // cout<< "executo\n";
+            } 
+
+            if(noiseTestRIG < minRender)
+            {
+                resp.push_back(4);
+                // cout<< "executo\n";
+            }
 
             if(noiseTest < minRender)
-                resp.push_back(0);
+            {
+                resp.push_back(5);
+                // cout<< "executo\n";
+            } 
 
-            resp.push_back(1);
-            resp.push_back(2);
-            resp.push_back(3);
-            resp.push_back(4);
-            resp.push_back(5);
+            // resp.push_back(1);
+            // resp.push_back(2);
+            // resp.push_back(3);
+            // resp.push_back(4);
+            // resp.push_back(5);
 
             return resp;
         }
