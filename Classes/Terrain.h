@@ -44,6 +44,24 @@ private:
         FastNoiseLite::NoiseType_ValueCubic//5
     };
 
+    bool ThresABlock(float x, float y, float z)
+    {
+        
+        float xOff = x*10;
+        float yOff = y*10;
+        float zOff = z*10;
+
+        float noiseValue = noise.GetNoise(xOff, yOff, zOff);
+
+        if(noiseValue >= minRender)
+        {
+            return true;
+        }
+
+        return false;
+
+    }
+
     vector<int> ShouldRender(float x, float y, float z)
     {
         vector<int> resp;
@@ -67,6 +85,7 @@ private:
 
         if(teste)
         {
+            /*
             float noiseTestTOP = noise.GetNoise(x*10, (y+1)*10, z*10); //0  Topo
             float noiseTestFOR = noise.GetNoise(x*10, (y+1)*10, z*10); //1  Frente
             float noiseTestDOW = noise.GetNoise(x*10, (y+1)*10, z*10); //2  Embaixo
@@ -104,17 +123,21 @@ private:
                 // cout<< "executo\n";
             }
 
-            if(noiseTest < minRender)
+            if(noiseTestLEF < minRender)
             {
                 resp.push_back(5);
                 // cout<< "executo\n";
             } 
 
-            // resp.push_back(1);
-            // resp.push_back(2);
-            // resp.push_back(3);
-            // resp.push_back(4);
-            // resp.push_back(5);
+            */
+
+            if(!ThresABlock(x,y+1,z))
+                resp.push_back(0);
+            resp.push_back(1);
+            resp.push_back(2);
+            resp.push_back(3);
+            resp.push_back(4);
+            resp.push_back(5);
 
             return resp;
         }
