@@ -23,7 +23,7 @@ class Terrain : public GameObject
 {
 private:
     FastNoiseLite noise;
-    float minRender = -0.5f;
+    float minRender = -1.5f;
 
     const int maxY = 4;
     const int maxX = 40;
@@ -85,58 +85,22 @@ private:
 
         if(teste)
         {
-            /*
-            float noiseTestTOP = noise.GetNoise(x*10, (y+1)*10, z*10); //0  Topo
-            float noiseTestFOR = noise.GetNoise(x*10, (y+1)*10, z*10); //1  Frente
-            float noiseTestDOW = noise.GetNoise(x*10, (y+1)*10, z*10); //2  Embaixo
-            float noiseTestBAC = noise.GetNoise(x*10, (y+1)*10, z*10); //3  Atras
-            float noiseTestRIG = noise.GetNoise(x*10, (y+1)*10, z*10); //4  Direita
-            float noiseTestLEF = noise.GetNoise(x*10, (y+1)*10, z*10); //5  Esquerda
-
-            if(noiseTestTOP < minRender)
-            {
-                resp.push_back(0);
-                // cout<< "executo\n";
-            }
-
-            if(noiseTestFOR < minRender)
-            {
-                resp.push_back(1);
-                // cout<< "executo\n";
-            } 
-
-            if(noiseTestDOW < minRender)
-            {
-                resp.push_back(2);
-                // cout<< "executo\n";
-            }
-
-            if(noiseTestBAC < minRender)
-            {
-                resp.push_back(3);
-                // cout<< "executo\n";
-            } 
-
-            if(noiseTestRIG < minRender)
-            {
-                resp.push_back(4);
-                // cout<< "executo\n";
-            }
-
-            if(noiseTestLEF < minRender)
-            {
-                resp.push_back(5);
-                // cout<< "executo\n";
-            } 
-
-            */
-
-            if(!ThresABlock(x,y+1,z))
-                resp.push_back(0);
+            //if(!ThresABlock(x,y+1,z)) //Topo
+            resp.push_back(0);
+            
+            if(!ThresABlock(x,y,z+1))  //Frente
             resp.push_back(1);
+
+            if(!ThresABlock(x,y-1,z))  //Embaixo
             resp.push_back(2);
+
+            //if(!ThresABlock(x,y,z-1)) //Atras
             resp.push_back(3);
+
+            //if(!ThresABlock(x+1,y,z)) //Direita
             resp.push_back(4);
+
+            //if(!ThresABlock(x-1,y,z)) //Esquerda
             resp.push_back(5);
 
             return resp;
@@ -145,13 +109,6 @@ private:
 
         for(int i = 0; i < 6; i++)
         {
-            // cout<< "I: " << i << endl;
-            // cout<< "x: " << x << " y: " << y << " z: " << z << endl;
-            // cout<< "xOff: " << xOff + sides[i].x << " yOff: " << yOff + sides[i].y << " zOff: " << zOff + sides[i].z << endl;
-            // cout<< "noise: " << noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) << endl;
-            // cout<< "MinRender: " << minRender << endl;
-            
-            // cout<< endl;
 
             bool limite = y==maxY-1 && i==0 || y==0 && i==2;
             if(noise.GetNoise((xOff + sides[i].x), (yOff + sides[i].y), (zOff + sides[i].z)) < minRender)
