@@ -9,4 +9,4 @@ Atualmente o projeto está dividido em duas branchs sendo a padrão a “AEDs 1�
 
 Na pasta raiz do projeto é possível encontrar um vídeo demostrando a resultado do trabalho e duas pastas, uma “src” que contém o código da aplicação e uma outra **pasta “build” que contém uma versão executável do projeto** caso queira testá-lo em sua própria máquina sem que tenha que compilar o código e baixar suas dependências. 
 
-<video src="../GameplayVideo.mp4" controls title="Title"></video>
+<video src="GameplayVideo.mp4" controls title="Title"></video>
